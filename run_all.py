@@ -28,12 +28,11 @@ TABLE_MODULES = {
     8: 'experiments.table8',
     9: 'experiments.table9',
     14: 'experiments.table14',
-    15: 'experiments.table15',
     18: 'experiments.table18',
 }
 
 # Recommended execution order
-EXECUTION_ORDER = [3, 4, 14, 15, 5, 6, 7, 18, 8, 9]
+EXECUTION_ORDER = [3, 4, 14, 5, 6, 7, 18, 8, 9]
 
 
 def parse_args():
