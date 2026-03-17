@@ -11,6 +11,10 @@ import os
 import sys
 import time
 
+# Force CPU: Metal GPU causes numerical instability for M2 training
+import tensorflow as tf
+tf.config.set_visible_devices([], 'GPU')
+
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -23,12 +27,13 @@ TABLE_MODULES = {
     7: 'experiments.table7',
     8: 'experiments.table8',
     9: 'experiments.table9',
+    14: 'experiments.table14',
     15: 'experiments.table15',
     18: 'experiments.table18',
 }
 
 # Recommended execution order
-EXECUTION_ORDER = [3, 4, 15, 5, 6, 7, 18, 8, 9]
+EXECUTION_ORDER = [3, 4, 14, 15, 5, 6, 7, 18, 8, 9]
 
 
 def parse_args():

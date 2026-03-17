@@ -28,6 +28,7 @@ class M2_DNN_RQ(Model):
         self.hidden3 = keras.layers.Dense(f3, activation="relu")
         self.hidden4 = keras.layers.Dense(f4, activation="relu")
         self.hidden5 = keras.layers.Dense(f5, activation="relu")
+        self.dropout = keras.layers.Dropout(0.2)
         self.output_model = keras.layers.Dense(1, activation="linear")
 
     def call(self, inputs):
@@ -40,7 +41,7 @@ class M2_DNN_RQ(Model):
         h3 = self.hidden3(concat)
         h4 = self.hidden4(h3)
         h5 = self.hidden5(h4)
-        h6 = keras.layers.Dropout(0.2)(h5)
+        h6 = self.dropout(h5)
         out = self.output_model(h6)
         return out
 
@@ -63,6 +64,7 @@ class M2_CNN_RQ(Model):
         self.hidden2_mp = keras.layers.MaxPooling2D(pool_size=(2, 2))
         self.hidden4 = keras.layers.Dense(f3, activation="relu")
         self.hidden5 = keras.layers.Dense(f4, activation="relu")
+        self.dropout = keras.layers.Dropout(0.2)
         self.output_model = keras.layers.Dense(1, activation="linear")
 
     def call(self, inputs):
@@ -76,6 +78,6 @@ class M2_CNN_RQ(Model):
         concat = keras.layers.concatenate([flatA, flatB])
         x = self.hidden4(concat)
         x = self.hidden5(x)
-        x = keras.layers.Dropout(0.2)(x)
+        x = self.dropout(x)
         out = self.output_model(x)
         return out

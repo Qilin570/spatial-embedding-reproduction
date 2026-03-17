@@ -65,7 +65,7 @@ def train_autoencoder(ae_config, hist_local, hist_global=None,
     model.compile(optimizer='adam', loss=losses.MeanSquaredError())
 
     # Split
-    X_train, X_val = train_test_split(hist_norm, test_size=val_split, random_state=42)
+    X_train, X_val = train_test_split(hist_norm, test_size=val_split)
 
     # Train
     print(f"Training {ae_config.name} ({ae_config.ae_type}, LD={ae_config.latent_dim})...")
@@ -117,7 +117,7 @@ def train_global_autoencoder(hist_global, latent_dim=2048,
     model = create_global_autoencoder(latent_dim)
     model.compile(optimizer='adam', loss=losses.MeanSquaredError())
 
-    X_train, X_val = train_test_split(hist_norm, test_size=val_split, random_state=42)
+    X_train, X_val = train_test_split(hist_norm, test_size=val_split)
 
     print(f"Training global AE (LD={latent_dim})...")
     t0 = time.time()

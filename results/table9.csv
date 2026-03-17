@@ -1,5 +1,9 @@
-M2_arch,Training,Autoencoder,Hyperpar,Time,WMAPE,Baseline
-M2_CNN,synthetic,AE_C2,cH2,68.4,0.8192,1.0011
-M2_DNN,synthetic,AE_C2,dH4,72.6,1.0000,1.0011
-M2_CNN,synthetic+real,AE_S4,cH1,64.8,0.6361,1.0683
-M2_DNN,synthetic+real,AE_S4,dH3,20.0,1.1579,1.0683
+Algorithm,M2_arch,Training,Autoencoder,Hyperpar,Time,WMAPE
+SJMR,M2_DNN,synthetic,AE_C2,dH4,144.9,0.2788
+SJMR,M2_CNN,synthetic,AE_C2,cH3,432.5,0.3629
+DJ,M2_DNN,synthetic,AE_C2,dH5,251.4,0.2999
+DJ,M2_CNN,synthetic,AE_C2,cH3,327.1,0.4067
+SJMR,M2_DNN,synthetic+real,AE_S4,dH3,8.4,0.4411
+SJMR,M2_CNN,synthetic+real,AE_S4,cH3,24.8,0.4459
+DJ,M2_DNN,synthetic+real,AE_S4,dH4,16.5,0.4220
+DJ,M2_CNN,synthetic+real,AE_S4,cH5,441.8,0.3271

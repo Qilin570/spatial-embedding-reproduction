@@ -84,7 +84,7 @@ def run(data_dir, output_dir, **kwargs):
 
     # 80/20 split on synthetic data: train on 80%, evaluate on 20%
     hist_train, hist_test = train_test_split(
-        hist_synthetic, test_size=0.2, random_state=42
+        hist_synthetic, test_size=0.2
     )
     print(f"Synthetic data split: {hist_train.shape[0]} train, {hist_test.shape[0]} test")
 
@@ -102,8 +102,8 @@ def run(data_dir, output_dir, **kwargs):
             model = keras.models.load_model(model_path)
             loaded_from_file = True
             train_time = 0
-            final_loss = 0
-            final_val_loss = 0
+            final_loss = 'N/A (pretrained)'
+            final_val_loss = 'N/A (pretrained)'
         else:
             # Train on 80% training set with data-derived norm values
             model, history, train_time, _, _ = train_autoencoder(
@@ -137,9 +137,9 @@ def run(data_dir, output_dir, **kwargs):
             'Autoencoder': ae_name,
             'LD': ae_cfg.latent_dim,
             'Hyperpar': f"f1={ae_cfg.f1},f2={ae_cfg.f2}",
-            'Time': f"{train_time:.1f}",
-            'LOSS': f"{final_loss:.6f}",
-            'VAL_LOSS': f"{final_val_loss:.6f}",
+            'Time': f"{train_time:.1f}" if isinstance(train_time, float) else str(train_time),
+            'LOSS': f"{final_loss:.6f}" if isinstance(final_loss, float) else str(final_loss),
+            'VAL_LOSS': f"{final_val_loss:.6f}" if isinstance(final_val_loss, float) else str(final_val_loss),
             'WMAPE': f"{wmape_synth:.4f}",
             'WMAPE_REAL': f"{wmape_real:.4f}",
         }

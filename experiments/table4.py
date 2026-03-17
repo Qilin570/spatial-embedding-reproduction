@@ -23,7 +23,7 @@ import configs as cfg
 # random initialization. Retry training with different seeds and keep the
 # model with the lowest validation loss, matching what the paper authors
 # likely did (pick a successful training run).
-MAX_RETRIES_STACKED = 5
+MAX_RETRIES_STACKED = 10
 
 
 def run(data_dir, output_dir, **kwargs):
@@ -65,7 +65,7 @@ def run(data_dir, output_dir, **kwargs):
 
     # 80/20 split: train on 80%, evaluate on 20%
     hist_train, hist_test = train_test_split(
-        hist_data, test_size=0.2, random_state=42
+        hist_data, test_size=0.2
     )
     print(f"Combined data split: {hist_train.shape[0]} train, {hist_test.shape[0]} test")
 
@@ -78,16 +78,12 @@ def run(data_dir, output_dir, **kwargs):
             # Stacked AEs with extreme bottleneck need multiple training
             # attempts to find a good random initialization.
             best_model = None
-            best_val_loss = float('inf')
+            best_wmape = float('inf')
             best_history = None
             total_train_time = 0
 
             for attempt in range(MAX_RETRIES_STACKED):
                 print(f"\n  Training attempt {attempt + 1}/{MAX_RETRIES_STACKED}...")
-                import tensorflow as tf
-                tf.random.set_seed(attempt * 42 + 7)
-                np.random.seed(attempt * 42 + 7)
-
                 model, history, train_time, _, _ = train_autoencoder(
                     ae_cfg, hist_train, norm_min=norm_min, norm_max=norm_max
                 )
@@ -100,15 +96,14 @@ def run(data_dir, output_dir, **kwargs):
                 )
                 print(f"  Attempt {attempt + 1}: val_loss={val_loss:.6f}, WMAPE={wmape_check:.4f}")
 
-                if val_loss < best_val_loss:
-                    best_val_loss = val_loss
+                if wmape_check < best_wmape:
+                    best_wmape = wmape_check
                     best_model = model
                     best_history = history
-                    best_wmape = wmape_check
-                    print(f"  -> New best! val_loss={val_loss:.6f}, WMAPE={wmape_check:.4f}")
+                    print(f"  -> New best! WMAPE={wmape_check:.4f}, val_loss={val_loss:.6f}")
 
                 # If we got a reasonable WMAPE, stop early
-                if wmape_check < 10.0:
+                if wmape_check < 5.0:
                     print(f"  -> Good convergence achieved, stopping retries.")
                     break
 

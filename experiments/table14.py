@@ -1,8 +1,9 @@
-"""Table 18: BJ selectivity - Full detailed results (all configs).
+"""Table 14: RQ selectivity - Full detailed results (DNN M2, dH1-dH5).
 
-Runs all combinations: 2 AE x 5 DNN + 2 AE x 5 CNN = 20 combos per training type.
+Runs all combinations: 4 AE configs x 5 DNN hyperparams (dH1-dH5),
+for synthetic and real-trained AEs.
 
-Output columns: Net_arch, Hyperpar, AE_S1_WMAPE, AE_S1_Time, AE_C2_WMAPE, ...
+Output columns: Hyperpar, AE_S1_WMAPE, AE_S1_Time, ...
 """
 import os
 import numpy as np
@@ -13,36 +14,35 @@ import configs as cfg
 
 
 def run(data_dir, output_dir, **kwargs):
-    """Run Table 18 experiment - Full BJ selectivity scan."""
+    """Run Table 14 experiment - Full RQ selectivity scan (DNN)."""
     print("\n" + "=" * 60)
-    print("TABLE 18: BJ Selectivity - Full Configs")
+    print("TABLE 14: RQ Selectivity - Full DNN Configs (dH1-dH5)")
     print("=" * 60)
 
-    # Synthetic AEs
-    ae_synth = ["AE_S1", "AE_C2"]
-    # Real AEs
-    ae_real = ["AE_S4", "AE_C3"]
+    # AE configs for synthetic training
+    ae_synth = ["AE_S1", "AE_S2", "AE_C1", "AE_C2"]
+    # AE configs for real training
+    ae_real = ["AE_S3", "AE_S4", "AE_C3", "AE_C4"]
 
-    all_m2_configs = list(cfg.M2_DNN_CONFIGS.values()) + list(cfg.M2_CNN_CONFIGS.values())
+    # DNN only (matching paper Table 14)
+    m2_cfgs = [cfg.M2_DNN_CONFIGS[f"dH{i}"] for i in range(1, 6)]
+
     all_results = []
 
     for training_type, ae_names in [("synthetic", ae_synth), ("synthetic+real", ae_real)]:
         print(f"\n--- Training type: {training_type} ---")
         results_rows = []
 
-        for m2_cfg in all_m2_configs:
-            row = {
-                'Net_arch': f"M2_{m2_cfg.m2_type.upper()}",
-                'Hyperpar': m2_cfg.name,
-            }
+        for m2_cfg in m2_cfgs:
+            row = {'Hyperpar': m2_cfg.name}
 
             for ae_name in ae_names:
                 ae_cfg = cfg.AE_CONFIGS[ae_name]
                 emb_shape = ae_cfg.emb_shape
 
-                x_file = os.path.join(data_dir, f"x_bj_sel_{ae_name}.npy")
-                x1_file = os.path.join(data_dir, f"x1_bj_sel_{ae_name}.npy")
-                y_file = os.path.join(data_dir, f"y_bj_sel_{ae_name}.npy")
+                x_file = os.path.join(data_dir, f"x_rq_{ae_name}.npy")
+                x1_file = os.path.join(data_dir, f"x1_rq_{ae_name}.npy")
+                y_file = os.path.join(data_dir, f"y_rq_{ae_name}.npy")
 
                 if not os.path.exists(x_file):
                     print(f"  Warning: {x_file} not found, skipping {ae_name}")
@@ -54,9 +54,9 @@ def run(data_dir, output_dir, **kwargs):
                 x1 = np.load(x1_file) if os.path.exists(x1_file) else np.zeros((x.shape[0], 1))
                 y = np.load(y_file)
 
-                print(f"  {ae_name} + {m2_cfg.name} ({m2_cfg.m2_type}): ", end="", flush=True)
+                print(f"    {ae_name} + {m2_cfg.name}: ", end="", flush=True)
 
-                model = create_m2_model("bj", m2_cfg.m2_type, emb_shape, m2_cfg.filters)
+                model = create_m2_model("rq", "dnn", emb_shape, m2_cfg.filters)
                 _, _, metrics, train_time = train_m2(model, x, x1, y)
 
                 row[f'{ae_name}_WMAPE'] = f"{metrics['wmape_tot']:.4f}"
@@ -67,15 +67,16 @@ def run(data_dir, output_dir, **kwargs):
 
         df = pd.DataFrame(results_rows)
         suffix = "synth" if training_type == "synthetic" else "real"
-        output_file = os.path.join(output_dir, f"table18_{suffix}.csv")
+        output_file = os.path.join(output_dir, f"table14_{suffix}.csv")
         df.to_csv(output_file, index=False)
         all_results.append(df)
         print(f"\nResults saved to {output_file}")
         print(df.to_string(index=False))
 
+    # Combined output
     if all_results:
         combined = pd.concat(all_results, ignore_index=True)
-        output_file = os.path.join(output_dir, "table18.csv")
+        output_file = os.path.join(output_dir, "table14.csv")
         combined.to_csv(output_file, index=False)
         return combined
     return pd.DataFrame()

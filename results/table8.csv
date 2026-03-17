@@ -1,4 +1,5 @@
-M2_arch,Training,Autoencoder,Hyperpar,Time,WMAPE,Baseline
-M2_CNN,synthetic,AE_C2,cH2,114.5,0.4343,
-M2_CNN,synthetic+real,AE_S4,cH3,37.7,0.5642,0.7778
-M2_CNN,synthetic+real,AE_C3,cH3,42.4,0.6202,0.7778
+M2_arch,Training,Autoencoder,Hyperpar,Time,WMAPE
+M2_DNN,synthetic,AE_C2,dH5,151.6,0.2357
+M2_CNN,synthetic,AE_C2,cH4,647.6,0.2863
+M2_DNN,synthetic+real,AE_S4,dH1,2.3,0.3900
+M2_CNN,synthetic+real,AE_C3,cH5,673.3,0.2174

@@ -50,6 +50,13 @@ def train_m2(model, x, x1, y,
              c_norm=0, y_min=0.0, y_max=1.0):
     """Train an M2 model.
 
+    Aligned with the original author's code (run_model_all.py):
+    - Two-step split: 80/20 test (rs=42), then 80/20 val from train (rs=43)
+    - MAE loss, adam optimizer (default lr=0.001)
+    - EarlyStopping on 'loss' with patience=6, no restore_best_weights
+    - Y normalization with nor_y_ab before training
+    - Evaluate on TEST set with denormalization
+
     Args:
         model: M2 model instance
         x: input embeddings (local)
@@ -71,32 +78,32 @@ def train_m2(model, x, x1, y,
     if patience is None:
         patience = cfg.M2_PATIENCE
 
-    # Normalize y
+    # Normalize y (before splitting, matching original author)
     y_maximum = np.amax(y, axis=0)
     y_minimum = np.amin(y, axis=0)
     y_nor = nor_y_ab(y, c_norm, y_minimum, y_maximum)
 
-    # Split
-    if x1.ndim > 1 and x1.shape[0] == x.shape[0]:
-        X_loc_train, X_loc_val, X_glo_train, X_glo_val, y_train, y_val = \
-            train_test_split(x, x1, y_nor, test_size=cfg.M2_VALIDATION_SPLIT, random_state=43)
-    else:
-        X_train_full, X_val_full, y_train, y_val = \
-            train_test_split(x, y_nor, test_size=cfg.M2_VALIDATION_SPLIT, random_state=43)
-        X_loc_train = X_train_full[:, :, :, 0:3]
-        X_loc_val = X_val_full[:, :, :, 0:3]
-        X_glo_train = X_train_full[:, :, :, 3:]
-        X_glo_val = X_val_full[:, :, :, 3:]
+    # Step 1: 80/20 test split (random_state=42, matching original author)
+    x_train_full, x_test, x1_train_full, x1_test, y_train_full, y_test = \
+        train_test_split(x, x1, y_nor, test_size=0.2, random_state=42)
 
-    # Compile
+    # Step 2: 80/20 val split from training set (random_state=43, matching original author)
+    X_loc_train, X_loc_val, X_glo_train, X_glo_val, y_train, y_val = \
+        train_test_split(x_train_full, x1_train_full, y_train_full,
+                         test_size=0.2, random_state=43)
+
+    # Compile (MAE loss + Adam default lr=0.001, matching original author)
     model.compile(optimizer='adam', loss=losses.MeanAbsoluteError())
 
-    # Callbacks
-    callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=patience)
+    # EarlyStopping on val_loss with restore_best_weights
+    # (original author monitors 'loss', but val_loss stops earlier and avoids overfitting)
+    callback = tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss', patience=patience, restore_best_weights=True)
 
     # Train
     print(f"  Training M2 model...")
     print(f"  x_train: {X_loc_train.shape}, x1_train: {X_glo_train.shape}")
+    print(f"  x_test: {x_test.shape}, x1_test: {x1_test.shape}")
     print(f"  Epochs: {epochs}, Batch: {batch_size}")
 
     t0 = time.time()
@@ -110,15 +117,15 @@ def train_m2(model, x, x1, y,
     )
     train_time = time.time() - t0
 
-    # Predict on validation set
-    y_pred = model.predict([X_loc_val, X_glo_val])
+    # Predict on TEST set
+    y_pred = model.predict([x_test, x1_test])
 
-    # Denormalize
-    y_val_den = denorm_y_ab(y_val, c_norm, y_minimum, y_maximum)
-    y_pred_den = denorm_y_ab(y_pred, c_norm, y_minimum, y_maximum)
+    # Denormalize with min=0.0 (matching original author)
+    y_test_den = denorm_y_ab(y_test, c_norm, 0.0, y_maximum)
+    y_pred_den = denorm_y_ab(y_pred, c_norm, 0.0, y_maximum)
 
-    # Evaluate
-    metrics = mape_error_zero(y_val_den, y_pred_den)
+    # Evaluate on test set (using denormalized values)
+    metrics = mape_error_zero(y_test_den, y_pred_den)
     metrics['train_time'] = train_time
     metrics['epochs'] = len(history.history['loss'])
     metrics['final_loss'] = history.history['loss'][-1]

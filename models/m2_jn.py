@@ -67,6 +67,7 @@ class M2_CNN_JN(Model):
         self.hidden2_mp = keras.layers.MaxPooling2D(pool_size=(2, 2))
         self.hidden4 = keras.layers.Dense(f3, activation="relu")
         self.hidden5 = keras.layers.Dense(f4, activation="relu")
+        self.dropout = keras.layers.Dropout(0.3)
         self.output_model = keras.layers.Dense(1, activation="linear")
 
     def call(self, inputs):
@@ -79,6 +80,6 @@ class M2_CNN_JN(Model):
         concat = keras.layers.concatenate([flatA, flatB])
         x = self.hidden4(concat)
         x = self.hidden5(x)
-        x = keras.layers.Dropout(0.3)(x)
+        x = self.dropout(x)
         out = self.output_model(x)
         return out

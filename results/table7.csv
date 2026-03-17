@@ -1,0 +1,4 @@
+M2_arch,Training,Autoencoder,Hyperpar,Time,WMAPE
+M2_DNN,synthetic,AE_C2,dH4,104.6,0.2904
+M2_CNN,synthetic,AE_C2,cH4,1043.5,0.3466
+M2_DNN,synthetic+real,AE_S4,dH1,4.5,0.4191
