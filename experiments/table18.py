@@ -24,6 +24,7 @@ def run(data_dir, output_dir, **kwargs):
     ae_real = ["AE_S4", "AE_C3"]
 
     all_m2_configs = list(cfg.M2_DNN_CONFIGS.values()) + list(cfg.M2_CNN_CONFIGS.values())
+    # all_m2_configs = list(cfg.M2_DNN_CONFIGS.values())  # DNN only for testing
     all_results = []
 
     for training_type, ae_names in [("synthetic", ae_synth), ("synthetic+real", ae_real)]:
