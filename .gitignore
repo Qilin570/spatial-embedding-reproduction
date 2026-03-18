@@ -29,3 +29,5 @@ Thumbs.db
 # Results (ignore non-csv files)
 results/*
 !results/*.csv
+
+# Trigger GitHub contributors refresh (no functional change)
