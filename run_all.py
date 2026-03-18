@@ -12,8 +12,8 @@ import sys
 import time
 
 # Force CPU: Metal GPU causes numerical instability for M2 training
-import tensorflow as tf
-tf.config.set_visible_devices([], 'GPU')
+# import tensorflow as tf
+# tf.config.set_visible_devices([], 'GPU')
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
