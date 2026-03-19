@@ -29,5 +29,6 @@ Thumbs.db
 # Results (ignore non-csv files)
 results/*
 !results/*.csv
+!results/table5_cv_run_log.md
 
 # Trigger GitHub contributors refresh (no functional change)
