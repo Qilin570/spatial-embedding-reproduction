@@ -54,7 +54,7 @@ M2_CNN + AE_S4 + cH4 (filters=[512, 256, 256, 128])
   Fold 5/5: WMAPE=0.3129, time=661.3s
   CV result: WMAPE_mean=0.3290 (std=0.0144)
 
-Results saved to /Users/yaming/Documents/python/spacial-embeddings/my-spatial-embedding/results/table5_cv.csv
+Results saved
 M2_arch       Training Autoencoder Hyperpar Time_mean Time_std WMAPE_mean WMAPE_std
  M2_DNN      synthetic       AE_S1      dH3      45.5     11.7     0.0872    0.0052
  M2_CNN      synthetic       AE_C2      cH4    2745.0    639.7     0.0814    0.0049

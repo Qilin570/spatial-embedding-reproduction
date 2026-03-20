@@ -10,7 +10,7 @@ This script:
 3. Maps pre-trained model directories to expected names
 
 Usage:
-    python3 prepare_data.py [--data-dir ./downloaded_data]
+    python3 -m data.prepare_data [--data-dir ./data/downloaded_data]
 """
 import os
 import sys

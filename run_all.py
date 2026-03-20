@@ -2,7 +2,7 @@
 """Main entry point for running spatial embedding experiments.
 
 Usage:
-    python run_all.py --tables 3 4 5 6 7 8 9 15 18 --data-dir ./downloaded_data/
+    python run_all.py --tables 3 4 5 6 7 8 9 15 18 --data-dir ./data/downloaded_data/
     python run_all.py --tables all --download
     python run_all.py --tables 3  # Run only Table 3
 """
@@ -30,10 +30,11 @@ TABLE_MODULES = {
     9: 'experiments.table9',
     14: 'experiments.table14',
     18: 'experiments.table18',
+    99: 'experiments.tsne_viz',
 }
 
 # Recommended execution order
-EXECUTION_ORDER = [3, 4, 14, 5, 51, 6, 7, 18, 8, 9]
+EXECUTION_ORDER = [3, 4, 14, 5, 51, 6, 7, 18, 8, 9, 99]
 
 
 def parse_args():
@@ -46,7 +47,7 @@ def parse_args():
     )
     parser.add_argument(
         '--data-dir', default=None,
-        help='Directory containing input data (default: ./downloaded_data/)'
+        help='Directory containing input data (default: ./data/downloaded_data/)'
     )
     parser.add_argument(
         '--output-dir', default=None,
@@ -72,7 +73,7 @@ def main():
     if args.data_dir:
         data_dir = os.path.abspath(args.data_dir)
     else:
-        data_dir = os.path.join(project_dir, "downloaded_data")
+        data_dir = os.path.join(project_dir, "data", "downloaded_data")
 
     # Set output directory
     if args.output_dir:
@@ -84,7 +85,7 @@ def main():
 
     # Download data if requested
     if args.download:
-        from download_data import download_data
+        from data.download_data import download_data
         download_data(data_dir, args.spatial_emb_dir)
 
     # Parse table numbers
