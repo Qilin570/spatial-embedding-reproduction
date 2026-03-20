@@ -39,6 +39,10 @@ MENDELEY_URLS = {
     # SJ training sets (MBR tests)
     "SJ_AE_c2_mbr": "https://data.mendeley.com/public-files/datasets/zp9fh6scw9/files/6b724714-ea0b-4824-b038-0cdb3a8e989a/file_downloaded",
     "SJ_AE_s4_mbr": "https://data.mendeley.com/public-files/datasets/zp9fh6scw9/files/f75d28f5-c07d-4b92-8624-7ef3a5031df9/file_downloaded",
+
+    # Histogram training sets (.npy.gz archives)
+    "histograms_synthetic": "https://data.mendeley.com/public-files/datasets/zp9fh6scw9/files/bf2cbc45-8410-4804-aa06-95bae137a3d1/file_downloaded",
+    "histograms_real": "https://data.mendeley.com/public-files/datasets/zp9fh6scw9/files/d43865fa-7c9d-40e6-a16f-e6b9328ae9a4/file_downloaded",
 }
 
 SPATIAL_EMB_BASE = os.path.join(
@@ -232,6 +236,18 @@ def download_from_mendeley(output_dir):
                 continue
             if download_file(url, archive_path, name):
                 extract_archive(archive_path, model_dir)
+                downloaded += 1
+        elif name.startswith("histograms_"):
+            npy_path = os.path.join(output_dir, f"{name}.npy")
+            if os.path.exists(npy_path):
+                print(f"  Already exists: {name}")
+                continue
+            gz_path = os.path.join(output_dir, f"{name}.npy.gz")
+            if download_file(url, gz_path, name):
+                print(f"  Extracting {name}.npy.gz...")
+                with gzip.open(gz_path, 'rb') as f_in, open(npy_path, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+                os.remove(gz_path)
                 downloaded += 1
         elif name.startswith("RQ_") or name.startswith("SJ_"):
             archive_path = os.path.join(output_dir, f"{name}.zip")
