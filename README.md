@@ -104,7 +104,7 @@ Results are saved to `results/` as CSV files and PNG figures.
 | 4     | M1   | AE reconstruction quality (synthetic + real data) |
 | 14    | M2   | RQ selectivity -- full DNN hyperparameter scan |
 | 5     | M2   | RQ selectivity -- best configurations |
-| 5-CV  | M2   | RQ selectivity -- 5-fold cross-validation |
+| 51  | M2   | RQ selectivity -- 5-fold cross-validation |
 | 6     | M2   | Self-join selectivity -- best configurations |
 | 7     | M2   | Self-join MBR tests -- best configurations |
 | 18    | M2   | Binary join selectivity -- full scan |
