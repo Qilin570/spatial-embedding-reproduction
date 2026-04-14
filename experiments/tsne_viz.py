@@ -1,23 +1,25 @@
-"""t-SNE visualization: compare M1 embedding quality across autoencoders.
+"""t-SNE visualization: validate that M1 captures geographic semantics.
 
-Compares 4 AEs on RQ embeddings:
+Applies t-SNE dimensionality reduction to M1 latent representations to
+visually validate that the autoencoder successfully captures geographic
+semantics and produces distinct clustering patterns by data distribution.
+
+Compares AEs from Table 3 (synthetic) and Table 4 (synthetic+real):
   AE_S1: Stacked, LD=384,  Synthetic only
   AE_C2: CNN,     LD=3072, Synthetic only
   AE_S3: Stacked, LD=48,   Synthetic + Real
   AE_S4: Stacked, LD=384,  Synthetic + Real
 
 Generates:
-  1. tsne_selectivity.png   — 2x4 grid, continuous + binned selectivity
-  2. tsne_distribution.png  — per-distribution clustering (synthetic AEs)
-  3. tsne_intra_dist.png    — within-distribution selectivity gradient analysis
-  4. tsne_viz.csv           — quantitative metrics for all AEs + random baseline
+  1. tsne_distribution.png  — primary: distribution clustering (geographic semantics)
+  2. tsne_selectivity.png   — secondary: selectivity gradient within clusters
+  3. tsne_viz.csv           — quantitative clustering metrics
 
-Metrics:
-  - dist_corr: Spearman correlation between embedding distance and selectivity
-    difference (higher = embedding better encodes selectivity)
-  - silhouette_sel: silhouette score using selectivity bins as labels
-    (higher = selectivity groups better separated in embedding space)
-  - dist_corr_random: same metric on shuffled embeddings (baseline)
+Metrics (computed in original high-dimensional embedding space):
+  - silhouette_dist: silhouette score using distribution type as labels
+    (higher = distributions better separated, M1 captures geographic semantics)
+  - silhouette_dist_random: same on shuffled embeddings (baseline)
+  - silhouette_dist_tsne: silhouette on t-SNE 2D for visual reference
 
 Usage:
     python run_all.py --tables 99
@@ -28,9 +30,8 @@ import argparse
 
 import numpy as np
 import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
-from scipy.spatial.distance import pdist
-from scipy.stats import spearmanr
 from sklearn.manifold import TSNE
 from sklearn.metrics import silhouette_score
 
@@ -45,13 +46,28 @@ AE_CONFIGS = [
     ("AE_S4", "Stacked, LD=384, Synth+Real"),
 ]
 
+# Distribution type -> color mapping for consistent coloring across plots
+DIST_COLORS = {
+    "bit":       "#e74c3c",
+    "diagonal":  "#3498db",
+    "gaussian":  "#2ecc71",
+    "parcel":    "#f39c12",
+    "sierpinski":"#9b59b6",
+    "uniform":   "#95a5a6",
+    "real":      "#1a1a2e",
+}
+
 
 # ---------------------------------------------------------------------------
 # Data loading
 # ---------------------------------------------------------------------------
 
-def _find_ds_file(data_dir, n_samples):
-    """Search subdirectories for a ds_*_rq*.npy matching n_samples."""
+def _find_ds_file(data_dir, ae_name, n_samples):
+    """Find distribution metadata file for a given AE and sample count.
+
+    Searches subdirectories for ds_*_rq*.npy or y_*_distr.npy files
+    matching the expected sample count.
+    """
     for subdir in os.listdir(data_dir):
         subpath = os.path.join(data_dir, subdir)
         if not os.path.isdir(subpath):
@@ -74,10 +90,10 @@ def _find_ds_file(data_dir, n_samples):
 
 
 def load_rq_data(data_dir, ae_name):
-    """Load RQ embeddings, targets, and optional distribution metadata."""
+    """Load RQ embeddings, targets, and distribution metadata."""
     x = np.load(os.path.join(data_dir, f"x_rq_{ae_name}.npy"))
     y = np.load(os.path.join(data_dir, f"y_rq_{ae_name}.npy"))
-    ds = _find_ds_file(data_dir, x.shape[0])
+    ds = _find_ds_file(data_dir, ae_name, x.shape[0])
     return x, y, ds
 
 
@@ -89,6 +105,22 @@ def subsample(x, y, ds, n_samples, seed):
         return x, y, ds
     idx = rng.choice(n, size=n_samples, replace=False)
     return x[idx], y[idx], ds[idx] if ds is not None else None
+
+
+def get_dist_labels(ds):
+    """Extract distribution type labels from metadata array.
+
+    Returns labels array and sorted unique label names, or (None, None)
+    if distribution metadata is unavailable or has only one category.
+    """
+    if ds is None:
+        return None, None
+    dist_col = ds[:, 1]
+    # Filter out empty strings
+    unique = sorted(set(d for d in dist_col if d))
+    if len(unique) <= 1:
+        return None, None
+    return dist_col, unique
 
 
 def bin_selectivity(y, n_bins=5):
@@ -118,92 +150,101 @@ def run_tsne(x_flat, seed, perplexity=PERPLEXITY):
 # Quantitative metrics
 # ---------------------------------------------------------------------------
 
-def compute_metrics(tsne_2d, y, seed):
-    """Compute distance correlation, silhouette score, and random baseline."""
-    # Spearman correlation: embedding distance vs selectivity difference
-    dists_emb = pdist(tsne_2d)
-    dists_y = pdist(y.reshape(-1, 1))
-    dist_corr, _ = spearmanr(dists_emb, dists_y)
+def compute_distribution_metrics(x_flat, tsne_2d, dist_labels, unique_dists, seed):
+    """Compute distribution clustering metrics in both high-dim and t-SNE space.
 
-    # Silhouette score on selectivity quintile bins
-    bin_labels, _ = bin_selectivity(y)
-    sil = silhouette_score(tsne_2d, bin_labels, sample_size=min(2000, len(y)),
-                           random_state=seed)
+    Args:
+        x_flat: original high-dimensional embeddings (N, D)
+        tsne_2d: t-SNE reduced embeddings (N, 2)
+        dist_labels: distribution type label for each sample
+        unique_dists: sorted list of unique distribution names
+        seed: random seed for reproducibility
 
-    # Random baseline: shuffle embedding rows then recompute
+    Returns:
+        dict with silhouette scores in high-dim, t-SNE, and random baseline
+    """
+    # Encode string labels to integers, filtering out empty labels
+    valid_mask = np.array([d in unique_dists and d != "" for d in dist_labels])
+    if valid_mask.sum() < 50:
+        return {}
+
+    label_to_int = {name: i for i, name in enumerate(unique_dists)}
+    int_labels = np.array([label_to_int.get(d, -1) for d in dist_labels])
+
+    x_valid = x_flat[valid_mask]
+    tsne_valid = tsne_2d[valid_mask]
+    labels_valid = int_labels[valid_mask]
+
+    sample_size = min(2000, len(labels_valid))
+
+    # Silhouette in original high-dimensional space
+    sil_hd = silhouette_score(x_valid, labels_valid,
+                              sample_size=sample_size, random_state=seed)
+
+    # Silhouette in t-SNE 2D space
+    sil_tsne = silhouette_score(tsne_valid, labels_valid,
+                                sample_size=sample_size, random_state=seed)
+
+    # Random baseline: shuffle labels
     rng = np.random.RandomState(seed + 1)
-    shuffled = tsne_2d[rng.permutation(len(tsne_2d))]
-    dists_rand = pdist(shuffled)
-    dist_corr_rand, _ = spearmanr(dists_rand, dists_y)
-    sil_rand = silhouette_score(shuffled, bin_labels,
-                                sample_size=min(2000, len(y)),
-                                random_state=seed)
+    shuffled_labels = labels_valid[rng.permutation(len(labels_valid))]
+    sil_random = silhouette_score(x_valid, shuffled_labels,
+                                  sample_size=sample_size, random_state=seed)
+
+    # Per-distribution silhouette (how well each distribution clusters)
+    from sklearn.metrics import silhouette_samples
+    sil_samples = silhouette_samples(x_valid, labels_valid)
+    per_dist = {}
+    for dist_name in unique_dists:
+        if dist_name == "":
+            continue
+        mask = labels_valid == label_to_int[dist_name]
+        if mask.sum() > 0:
+            per_dist[dist_name] = {
+                "silhouette": float(np.mean(sil_samples[mask])),
+                "n": int(mask.sum()),
+            }
 
     return {
-        "dist_corr": dist_corr,
-        "silhouette_sel": sil,
-        "dist_corr_random": dist_corr_rand,
-        "silhouette_random": sil_rand,
+        "silhouette_dist_hd": sil_hd,
+        "silhouette_dist_tsne": sil_tsne,
+        "silhouette_dist_random": sil_random,
+        "per_dist": per_dist,
     }
-
-
-def compute_per_dist_corr(tsne_2d, y, ds):
-    """Per-distribution selectivity-distance correlation."""
-    if ds is None:
-        return {}
-    dist_col = ds[:, 1]
-    results = {}
-    for dist_name in sorted(set(dist_col)):
-        mask = dist_col == dist_name
-        if mask.sum() < 30:
-            continue
-        sub_emb = tsne_2d[mask]
-        sub_y = y[mask]
-        if sub_y.std() < 1e-9:
-            continue
-        d_emb = pdist(sub_emb)
-        d_y = pdist(sub_y.reshape(-1, 1))
-        corr, _ = spearmanr(d_emb, d_y)
-        results[dist_name] = {"corr": corr, "n": int(mask.sum())}
-    return results
 
 
 # ---------------------------------------------------------------------------
 # Plotting helpers
 # ---------------------------------------------------------------------------
 
-def plot_continuous(ax, tsne_2d, y, title):
-    sc = ax.scatter(tsne_2d[:, 0], tsne_2d[:, 1],
-                    c=y, cmap="viridis", s=3, alpha=0.5, rasterized=True)
-    ax.set_title(title, fontsize=10)
-    ax.set_xticks([]); ax.set_yticks([])
-    return sc
-
-
-def plot_bins(ax, tsne_2d, bin_idx, bin_names, title):
-    cmap = plt.cm.get_cmap("tab10", len(bin_names))
-    for i, name in enumerate(bin_names):
-        mask = bin_idx == i
+def plot_distribution(ax, tsne_2d, dist_labels, unique_dists, title,
+                      show_legend=True, point_size=5):
+    """Plot t-SNE colored by data distribution type."""
+    for dist_name in unique_dists:
+        if dist_name == "":
+            continue
+        mask = dist_labels == dist_name
         if mask.sum() == 0:
             continue
+        color = DIST_COLORS.get(dist_name, "#333333")
         ax.scatter(tsne_2d[mask, 0], tsne_2d[mask, 1],
-                   c=[cmap(i)], s=3, alpha=0.5, label=name, rasterized=True)
-    ax.set_title(title, fontsize=10)
+                   c=color, s=point_size, alpha=0.5, label=dist_name,
+                   rasterized=True)
+    ax.set_title(title, fontsize=11, fontweight="bold")
     ax.set_xticks([]); ax.set_yticks([])
-    ax.legend(fontsize=6, markerscale=3, loc="best", title="Selectivity")
+    if show_legend:
+        ax.legend(fontsize=8, markerscale=3, loc="best", title="Distribution",
+                  framealpha=0.8)
 
 
-def plot_distribution(ax, tsne_2d, ds, title):
-    dist_col = ds[:, 1]
-    unique_dists = sorted(set(dist_col))
-    cmap = plt.cm.get_cmap("Set2", len(unique_dists))
-    for i, dist in enumerate(unique_dists):
-        mask = dist_col == dist
-        ax.scatter(tsne_2d[mask, 0], tsne_2d[mask, 1],
-                   c=[cmap(i)], s=3, alpha=0.5, label=dist, rasterized=True)
-    ax.set_title(title, fontsize=10)
+def plot_selectivity(ax, tsne_2d, y, title, point_size=5):
+    """Plot t-SNE colored by continuous selectivity value."""
+    sc = ax.scatter(tsne_2d[:, 0], tsne_2d[:, 1],
+                    c=y, cmap="viridis", s=point_size, alpha=0.5,
+                    rasterized=True)
+    ax.set_title(title, fontsize=11)
     ax.set_xticks([]); ax.set_yticks([])
-    ax.legend(fontsize=8, markerscale=3, loc="best", title="Distribution")
+    return sc
 
 
 # ---------------------------------------------------------------------------
@@ -212,12 +253,12 @@ def plot_distribution(ax, tsne_2d, ds, title):
 
 def run(data_dir, output_dir, **kwargs):
     print("\n" + "=" * 60)
-    print("t-SNE VISUALIZATION: M1 Embedding Quality Comparison")
+    print("t-SNE VISUALIZATION: Geographic Semantics in M1 Embeddings")
     print("=" * 60)
 
     # --- Load, subsample, run t-SNE for each AE ---
     tsne_results = {}
-    data_cache = {}
+    data_cache = {}  # ae_name -> (y_sub, ds_sub, x_flat)
     available = []
 
     for ae_name, desc in AE_CONFIGS:
@@ -228,7 +269,8 @@ def run(data_dir, output_dir, **kwargs):
 
         print(f"\n--- {ae_name}: {desc} ---")
         x, y, ds = load_rq_data(data_dir, ae_name)
-        print(f"  Loaded: x={x.shape}, y={y.shape}, ds={'yes' if ds is not None else 'no'}")
+        print(f"  Loaded: x={x.shape}, y={y.shape}, "
+              f"ds={'yes' if ds is not None else 'no'}")
 
         x_sub, y_sub, ds_sub = subsample(x, y, ds, N_SAMPLES, RANDOM_SEED)
         x_flat = x_sub.reshape(x_sub.shape[0], -1)
@@ -243,145 +285,137 @@ def run(data_dir, output_dir, **kwargs):
         print("ERROR: no data found")
         return pd.DataFrame()
 
-    n_ae = len(available)
+    # Identify AEs with distribution metadata (>1 distribution type)
+    ae_with_dist = []
+    for ae_name, desc in available:
+        dist_labels, unique_dists = get_dist_labels(data_cache[ae_name][1])
+        if dist_labels is not None:
+            ae_with_dist.append((ae_name, desc))
 
     # =======================================================================
-    # Figure 1: Selectivity comparison (2 rows x n_ae cols)
+    # Figure 1 (PRIMARY): Distribution clustering — geographic semantics
     # =======================================================================
-    fig, axes = plt.subplots(2, n_ae, figsize=(5 * n_ae, 9))
-    if n_ae == 1:
-        axes = axes.reshape(2, 1)
-    fig.suptitle("t-SNE of M1 Embeddings — Colored by RQ Selectivity", fontsize=14)
-
-    for col, (ae_name, desc) in enumerate(available):
-        tsne_2d = tsne_results[ae_name]
-        y_sub = data_cache[ae_name][0]
-        sc = plot_continuous(axes[0, col], tsne_2d, y_sub,
-                             f"{ae_name}\n{desc}")
-        bin_idx, bin_names = bin_selectivity(y_sub)
-        plot_bins(axes[1, col], tsne_2d, bin_idx, bin_names,
-                  f"{ae_name} — Selectivity Bins")
-
-    cbar = fig.colorbar(sc, ax=axes[0, :].tolist(), shrink=0.6, pad=0.02)
-    cbar.set_label("RQ Selectivity")
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
-    path1 = os.path.join(output_dir, "tsne_selectivity.png")
-    fig.savefig(path1, dpi=150, bbox_inches="tight")
-    print(f"\nSaved: {path1}")
-    plt.close(fig)
-
-    # =======================================================================
-    # Figure 2: Distribution clustering (only AEs with distribution metadata)
-    # =======================================================================
-    ae_with_dist = [(n, d) for n, d in available
-                    if data_cache[n][1] is not None
-                    and len(set(data_cache[n][1][:, 1])) > 1]
-
     if ae_with_dist:
-        n_dist = len(ae_with_dist)
-        fig2, axes2 = plt.subplots(1, n_dist, figsize=(7 * n_dist, 5))
-        if n_dist == 1:
-            axes2 = [axes2]
-        fig2.suptitle("t-SNE Colored by Data Distribution", fontsize=14)
+        n_dist_ae = len(ae_with_dist)
+        fig1, axes1 = plt.subplots(1, n_dist_ae,
+                                   figsize=(7 * n_dist_ae, 6))
+        if n_dist_ae == 1:
+            axes1 = [axes1]
+        fig1.suptitle(
+            "t-SNE of M1 Latent Space — Colored by Geographic Distribution\n"
+            "(Distinct clusters validate that M1 captures geographic semantics)",
+            fontsize=13, fontweight="bold")
 
         for i, (ae_name, desc) in enumerate(ae_with_dist):
-            plot_distribution(axes2[i], tsne_results[ae_name],
-                              data_cache[ae_name][1],
-                              f"{ae_name} — {desc}")
+            ds_sub = data_cache[ae_name][1]
+            x_flat = data_cache[ae_name][2]
+            dist_labels, unique_dists = get_dist_labels(ds_sub)
+            tsne_2d = tsne_results[ae_name]
 
+            # Compute and display silhouette in title
+            metrics = compute_distribution_metrics(
+                x_flat, tsne_2d, dist_labels, unique_dists, RANDOM_SEED)
+            sil_hd = metrics.get("silhouette_dist_hd", float("nan"))
+
+            plot_distribution(
+                axes1[i], tsne_2d, dist_labels, unique_dists,
+                f"{ae_name} — {desc}\n"
+                f"Silhouette (high-dim): {sil_hd:.3f}")
+
+        plt.tight_layout(rect=[0, 0, 1, 0.90])
+        path1 = os.path.join(output_dir, "tsne_distribution.png")
+        fig1.savefig(path1, dpi=150, bbox_inches="tight")
+        print(f"\nSaved: {path1}")
+        plt.close(fig1)
+
+    # =======================================================================
+    # Figure 2 (SECONDARY): Selectivity gradient overlay
+    # Shows that within each distribution cluster, selectivity varies
+    # =======================================================================
+    if ae_with_dist:
+        n_dist_ae = len(ae_with_dist)
+        fig2, axes2 = plt.subplots(2, n_dist_ae,
+                                   figsize=(7 * n_dist_ae, 11))
+        if n_dist_ae == 1:
+            axes2 = axes2.reshape(2, 1)
+        fig2.suptitle(
+            "M1 Latent Space: Distribution Clustering vs. Selectivity Gradient",
+            fontsize=13, fontweight="bold")
+
+        for col, (ae_name, desc) in enumerate(ae_with_dist):
+            ds_sub = data_cache[ae_name][1]
+            y_sub = data_cache[ae_name][0]
+            dist_labels, unique_dists = get_dist_labels(ds_sub)
+            tsne_2d = tsne_results[ae_name]
+
+            # Row 0: distribution clustering
+            plot_distribution(axes2[0, col], tsne_2d, dist_labels,
+                              unique_dists, f"{ae_name} — Distribution",
+                              point_size=4)
+
+            # Row 1: selectivity gradient
+            sc = plot_selectivity(axes2[1, col], tsne_2d, y_sub,
+                                  f"{ae_name} — RQ Selectivity", point_size=4)
+
+        cbar = fig2.colorbar(sc, ax=axes2[1, :].tolist(), shrink=0.6,
+                             pad=0.02)
+        cbar.set_label("RQ Selectivity")
         plt.tight_layout(rect=[0, 0, 1, 0.93])
-        path2 = os.path.join(output_dir, "tsne_distribution.png")
+        path2 = os.path.join(output_dir, "tsne_selectivity.png")
         fig2.savefig(path2, dpi=150, bbox_inches="tight")
         print(f"Saved: {path2}")
         plt.close(fig2)
 
     # =======================================================================
-    # Figure 3: Within-distribution selectivity gradient (AEs with dist data)
-    # =======================================================================
-    if ae_with_dist:
-        # Pick the first AE with distribution info for detailed analysis
-        ae_name, desc = ae_with_dist[0]
-        tsne_2d = tsne_results[ae_name]
-        y_sub, ds_sub, _ = data_cache[ae_name]
-        dists = sorted(set(ds_sub[:, 1]))
-
-        n_dists = len(dists)
-        ncols = min(3, n_dists)
-        nrows = (n_dists + ncols - 1) // ncols
-        fig3, axes3 = plt.subplots(nrows, ncols, figsize=(5 * ncols, 4.5 * nrows))
-        axes3 = np.atleast_2d(axes3)
-        fig3.suptitle(
-            f"{ae_name}: Within-Distribution Selectivity Gradient", fontsize=14)
-
-        for idx, dist_name in enumerate(dists):
-            r, c = divmod(idx, ncols)
-            ax = axes3[r, c]
-            mask = ds_sub[:, 1] == dist_name
-            sc = ax.scatter(tsne_2d[mask, 0], tsne_2d[mask, 1],
-                            c=y_sub[mask], cmap="viridis", s=6, alpha=0.6,
-                            rasterized=True)
-            n_pts = mask.sum()
-            # Per-dist correlation
-            if n_pts >= 30 and y_sub[mask].std() > 1e-9:
-                d_emb = pdist(tsne_2d[mask])
-                d_y = pdist(y_sub[mask].reshape(-1, 1))
-                corr, _ = spearmanr(d_emb, d_y)
-                ax.set_title(f"{dist_name} (n={n_pts})\ncorr={corr:.3f}",
-                             fontsize=10)
-            else:
-                ax.set_title(f"{dist_name} (n={n_pts})", fontsize=10)
-            ax.set_xticks([]); ax.set_yticks([])
-            fig3.colorbar(sc, ax=ax, shrink=0.7, pad=0.02)
-
-        # Hide unused axes
-        for idx in range(n_dists, nrows * ncols):
-            r, c = divmod(idx, ncols)
-            axes3[r, c].set_visible(False)
-
-        plt.tight_layout(rect=[0, 0, 1, 0.93])
-        path3 = os.path.join(output_dir, "tsne_intra_dist.png")
-        fig3.savefig(path3, dpi=150, bbox_inches="tight")
-        print(f"Saved: {path3}")
-        plt.close(fig3)
-
-    # =======================================================================
     # Quantitative metrics + CSV
     # =======================================================================
     print("\n" + "=" * 60)
-    print("QUANTITATIVE METRICS")
+    print("QUANTITATIVE METRICS — Distribution Clustering")
     print("=" * 60)
 
     rows = []
     for ae_name, desc in available:
         tsne_2d = tsne_results[ae_name]
-        y_sub, ds_sub, _ = data_cache[ae_name]
-
-        metrics = compute_metrics(tsne_2d, y_sub, RANDOM_SEED)
-        per_dist = compute_per_dist_corr(tsne_2d, y_sub, ds_sub)
-
-        print(f"\n  {ae_name} ({desc}):")
-        print(f"    dist_corr (emb-sel):   {metrics['dist_corr']:.4f}  "
-              f"(random: {metrics['dist_corr_random']:.4f})")
-        print(f"    silhouette (sel bins):  {metrics['silhouette_sel']:.4f}  "
-              f"(random: {metrics['silhouette_random']:.4f})")
-
-        if per_dist:
-            print(f"    per-distribution corr:")
-            for dname, dvals in per_dist.items():
-                print(f"      {dname:12s}: corr={dvals['corr']:.4f}  (n={dvals['n']})")
+        y_sub, ds_sub, x_flat = data_cache[ae_name]
+        dist_labels, unique_dists = get_dist_labels(ds_sub)
 
         row = {
             "AE": ae_name,
             "Description": desc,
-            "N_samples": N_SAMPLES,
-            "dist_corr": round(metrics["dist_corr"], 4),
-            "silhouette_sel": round(metrics["silhouette_sel"], 4),
-            "dist_corr_random": round(metrics["dist_corr_random"], 4),
-            "silhouette_random": round(metrics["silhouette_random"], 4),
+            "N_samples": x_flat.shape[0],
+            "Embedding_dim": x_flat.shape[1],
         }
-        # Add per-distribution correlations as columns
-        for dname, dvals in per_dist.items():
-            row[f"corr_{dname}"] = round(dvals["corr"], 4)
+
+        if dist_labels is not None:
+            metrics = compute_distribution_metrics(
+                x_flat, tsne_2d, dist_labels, unique_dists, RANDOM_SEED)
+
+            sil_hd = metrics.get("silhouette_dist_hd", float("nan"))
+            sil_tsne = metrics.get("silhouette_dist_tsne", float("nan"))
+            sil_rand = metrics.get("silhouette_dist_random", float("nan"))
+
+            print(f"\n  {ae_name} ({desc}):")
+            print(f"    silhouette (high-dim):  {sil_hd:.4f}")
+            print(f"    silhouette (t-SNE 2D):  {sil_tsne:.4f}")
+            print(f"    silhouette (random):    {sil_rand:.4f}")
+
+            row["silhouette_dist_hd"] = round(sil_hd, 4)
+            row["silhouette_dist_tsne"] = round(sil_tsne, 4)
+            row["silhouette_dist_random"] = round(sil_rand, 4)
+
+            per_dist = metrics.get("per_dist", {})
+            if per_dist:
+                print(f"    per-distribution silhouette (high-dim):")
+                for dname, dvals in sorted(per_dist.items()):
+                    print(f"      {dname:12s}: {dvals['silhouette']:.4f}  "
+                          f"(n={dvals['n']})")
+                    row[f"sil_{dname}"] = round(dvals["silhouette"], 4)
+        else:
+            print(f"\n  {ae_name} ({desc}): no distribution metadata")
+            row["silhouette_dist_hd"] = "N/A"
+            row["silhouette_dist_tsne"] = "N/A"
+            row["silhouette_dist_random"] = "N/A"
+
         rows.append(row)
 
     df = pd.DataFrame(rows)
@@ -400,7 +434,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    data_dir = args.data_dir or os.path.join(project_dir, "data", "downloaded_data")
+    data_dir = args.data_dir or os.path.join(project_dir, "data",
+                                             "downloaded_data")
     output_dir = args.output_dir or os.path.join(project_dir, "results")
     os.makedirs(output_dir, exist_ok=True)
 

@@ -1,5 +1,5 @@
-AE,Description,N_samples,dist_corr,silhouette_sel,dist_corr_random,silhouette_random,corr_bit,corr_diagonal,corr_gaussian,corr_parcel,corr_sierpinski,corr_uniform,corr_real
-AE_S1,"Stacked, LD=384, Synthetic",5000,0.0211,-0.0436,0.0005,-0.0205,0.0,0.0048,0.014,0.0196,0.0099,-0.0006,
-AE_C2,"CNN, LD=3072, Synthetic",5000,0.0129,-0.0498,-0.0017,-0.0204,-0.0279,-0.0095,0.1163,0.0661,-0.0236,0.0089,
-AE_S3,"Stacked, LD=48, Synth+Real",5000,0.0107,-0.0643,-0.0006,-0.0301,,,,,,,0.0107
-AE_S4,"Stacked, LD=384, Synth+Real",5000,-0.007,-0.0503,-0.0017,-0.021,,,,,,,-0.007
+AE,Description,N_samples,Embedding_dim,silhouette_dist_hd,silhouette_dist_tsne,silhouette_dist_random,sil_bit,sil_diagonal,sil_gaussian,sil_parcel,sil_sierpinski,sil_uniform
+AE_S1,"Stacked, LD=384, Synthetic",5000,384,0.1031,0.268,-0.0145,-0.0533,0.0106,0.1858,0.5823,0.2086,-0.1652
+AE_C2,"CNN, LD=3072, Synthetic",5000,3072,0.3824,0.34,-0.0248,-0.0708,0.5125,0.6527,0.5201,0.6613,0.2033
+AE_S3,"Stacked, LD=48, Synth+Real",5000,48,N/A,N/A,N/A,,,,,,
+AE_S4,"Stacked, LD=384, Synth+Real",5000,384,N/A,N/A,N/A,,,,,,
