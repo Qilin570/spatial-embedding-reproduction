@@ -1,5 +1,7 @@
-AE,Description,N_samples,Embedding_dim,silhouette_dist_hd,silhouette_dist_tsne,silhouette_dist_random,sil_bit,sil_diagonal,sil_gaussian,sil_parcel,sil_sierpinski,sil_uniform,sil_lake,sil_park
-AE_S1,"Stacked, LD=384, Synthetic",5000,384,0.1031,0.268,-0.0145,-0.0533,0.0106,0.1858,0.5823,0.2086,-0.1652,,
-AE_C2,"CNN, LD=3072, Synthetic",5000,3072,0.3824,0.34,-0.0248,-0.0708,0.5125,0.6527,0.5201,0.6613,0.2033,,
-AE_S3,"Stacked, LD=48, Synth+Real",5000,48,-0.0021,0.0289,-0.0021,,,,,,,0.0159,-0.0047
-AE_S4,"Stacked, LD=384, Synth+Real",5000,384,-0.0017,0.0047,0.0079,,,,,,,0.0204,-0.0093
+AE,Description,Task,N_samples,Embedding_dim,silhouette_dist_hd,silhouette_dist_tsne,silhouette_dist_random,sil_bit,sil_diagonal,sil_gaussian,sil_parcel,sil_sierpinski,sil_uniform,sil_lake,sil_park,sil_real
+AE_S1,"Stacked, LD=384, Synthetic",RQ,5000,384,0.1031,0.268,-0.0145,-0.0533,0.0106,0.1858,0.5823,0.2086,-0.1652,,,
+AE_C2,"CNN, LD=3072, Synthetic",RQ,5000,3072,0.3824,0.34,-0.0248,-0.0708,0.5125,0.6527,0.5201,0.6613,0.2033,,,
+AE_S3,"Stacked, LD=48, Synth+Real",RQ,5000,48,-0.0021,0.0289,-0.0021,,,,,,,0.0159,-0.0047,
+AE_S4,"Stacked, LD=384, Synth+Real",RQ,5000,384,-0.0017,0.0047,0.0079,,,,,,,0.0204,-0.0093,
+AE_C2,"CNN, LD=3072, Synthetic",SJ,5000,6144,-0.0057,-0.0172,-0.0141,-0.0366,-0.0283,0.0781,0.252,0.0647,-0.0332,,,
+AE_S4,"Stacked, LD=384, Synth+Real",SJ,3900,768,0.4216,0.0309,-0.0519,0.0686,0.2069,0.1979,0.1901,0.1047,0.0113,,,0.7753
