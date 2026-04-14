@@ -54,7 +54,8 @@ DIST_COLORS = {
     "parcel":    "#f39c12",
     "sierpinski":"#9b59b6",
     "uniform":   "#95a5a6",
-    "real":      "#1a1a2e",
+    "lake":      "#1a759f",
+    "park":      "#76b947",
 }
 
 
@@ -110,6 +111,10 @@ def subsample(x, y, ds, n_samples, seed):
 def get_dist_labels(ds):
     """Extract distribution type labels from metadata array.
 
+    For synthetic data: uses column 1 (distribution type: bit, diagonal, etc.)
+    For real data (column 1 is all "real"): derives lake/park category from
+    the dataset filename in column 0.
+
     Returns labels array and sorted unique label names, or (None, None)
     if distribution metadata is unavailable or has only one category.
     """
@@ -118,9 +123,25 @@ def get_dist_labels(ds):
     dist_col = ds[:, 1]
     # Filter out empty strings
     unique = sorted(set(d for d in dist_col if d))
-    if len(unique) <= 1:
-        return None, None
-    return dist_col, unique
+    if len(unique) > 1:
+        return dist_col, unique
+
+    # For real-only data, derive labels from dataset filename (lake vs park)
+    if unique == ["real"]:
+        def _geo_category(path):
+            fname = path.split("/")[-1] if "/" in path else path
+            if fname.startswith("lake"):
+                return "lake"
+            if fname.startswith("park"):
+                return "park"
+            return "other"
+
+        labels = np.array([_geo_category(name) for name in ds[:, 0]])
+        derived_unique = sorted(set(labels) - {"other"})
+        if len(derived_unique) > 1:
+            return labels, derived_unique
+
+    return None, None
 
 
 def bin_selectivity(y, n_bins=5):
