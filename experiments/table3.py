@@ -18,12 +18,7 @@ import configs as cfg
 
 
 def _load_real_only(data_dir):
-    """Extract pure real data from the combined dataset.
-
-    The original authors' file histograms_loc_tot_real.npy contains
-    real_data (first N rows) + synthetic_data (remaining rows).
-    We extract the real-only portion by subtracting synthetic count.
-    """
+    """Extract pure real data from the combined dataset (first N rows)."""
     combined_file = os.path.join(data_dir, "histograms_real.npy")
     synth_file = os.path.join(data_dir, "histograms_synthetic.npy")
     if not os.path.exists(combined_file) or not os.path.exists(synth_file):
@@ -39,12 +34,7 @@ def _load_real_only(data_dir):
 
 
 def run(data_dir, output_dir, **kwargs):
-    """Run Table 3 experiment.
-
-    Args:
-        data_dir: directory containing data files
-        output_dir: directory to save results
-    """
+    """Run Table 3 experiment."""
     print("\n" + "=" * 60)
     print("TABLE 3: CNN Autoencoder (Synthetic Data Only)")
     print("=" * 60)

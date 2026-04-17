@@ -1,116 +1,106 @@
 # Spatial Embedding for Selectivity Estimation
 
-A clean reimplementation of the spatial embedding approach for estimating range query selectivity, self-join selectivity, and MBR test counts on spatial data.
+This project reproduces the spatial embedding approach for estimating range query selectivity, self-join selectivity, and MBR test counts on spatial data. The original paper proposes a two-stage learning pipeline, and this repo provides a clean, modular reimplementation to validate the key results.
 
-## Architecture
+## How It Works
 
-The system uses a two-stage pipeline:
+The pipeline has two stages:
 
-**M1 (Autoencoder)** compresses 128x128x6 spatial histograms into low-dimensional embeddings. Eight configurations cover two architectures (Stacked / CNN), multiple latent dimensions (48--3072), and two training regimes (synthetic only / synthetic+real).
+1. **M1 (Autoencoder)** -- compresses 128x128x6 spatial histograms into compact embeddings. We test 8 autoencoder configurations across two architectures (Stacked Dense / CNN), different latent dimensions (48 to 3072), and two training regimes (synthetic only vs. synthetic+real).
 
-**M2 (Prediction Model)** takes the embeddings and predicts query results. Two architectures (DNN / CNN) with five hyperparameter scales each (dH1--dH5, cH1--cH5) are evaluated across range query, self-join, and binary join tasks.
+2. **M2 (Prediction Model)** -- takes those embeddings as input and predicts query selectivity or MBR test counts. We evaluate DNN and CNN architectures at five hyperparameter scales (dH1--dH5 for DNN, cH1--cH5 for CNN) on range query, self-join, and binary join tasks.
 
-## Project Structure
+## Project Layout
 
 ```
 my-spatial-embedding/
 ├── configs.py                  # All AE/M2 configs, normalization constants
-├── run_all.py                  # Entry point for running experiments
+├── run_all.py                  # Main entry point
 │
 ├── data/
-│   ├── download_data.py        # Download data from Mendeley
+│   ├── download_data.py        # Download from Mendeley
 │   ├── prepare_data.py         # Extract zips, create standardized symlinks
 │   ├── histograms.py           # Histogram generation and loading
 │   ├── input_gen.py            # M2 input embedding generation (RQ/JN)
-│   ├── normalization.py        # Min-max + log normalization utilities
-│   └── downloaded_data/        # Data files (not tracked in git)
+│   └── normalization.py        # log(1+cx) + min-max normalization
 │
 ├── models/
 │   ├── autoencoders.py         # AE architectures (CNN, Stacked, Global)
 │   ├── m2_rq.py                # M2 models for range query
-│   └── m2_jn.py                # M2 models for self-join / binary join
+│   └── m2_jn.py                # M2 models for join tasks
 │
 ├── training/
-│   ├── train_ae.py             # AE training (MSE loss, Adam, 50 epochs)
-│   └── train_m2.py             # M2 training (MAE loss, EarlyStopping, 80 epochs)
+│   ├── train_ae.py             # AE training loop
+│   └── train_m2.py             # M2 training loop
 │
 ├── evaluation/
-│   └── metrics.py              # WMAPE, MAPE, RMA metrics
+│   └── metrics.py              # WMAPE, MAPE, RMA
 │
 ├── experiments/
-│   ├── table3.py               # CNN AE reconstruction (synthetic)
-│   ├── table4.py               # AE reconstruction (synthetic + real)
-│   ├── table5.py               # RQ selectivity best results
-│   ├── table5_cv.py            # RQ selectivity 5-fold cross-validation
-│   ├── table6.py               # Self-join selectivity best results
-│   ├── table7.py               # Self-join MBR tests best results
-│   ├── table8.py               # Binary join selectivity best results
-│   ├── table9.py               # Binary join MBR tests best results
-│   ├── table14.py              # RQ selectivity full DNN scan
-│   ├── table18.py              # BJ selectivity full scan (DNN + CNN)
-│   └── tsne_viz.py             # t-SNE embedding quality visualization
+│   ├── table3.py               # CNN AE on synthetic data
+│   ├── table4.py               # AE on synthetic + real data
+│   ├── table5.py               # RQ selectivity (best configs)
+│   ├── table5_cv.py            # RQ selectivity (5-fold CV)
+│   ├── table6.py               # Self-join selectivity
+│   ├── table7.py               # Self-join MBR tests
+│   ├── table8.py               # Binary join selectivity
+│   ├── table9.py               # Binary join MBR tests
+│   ├── table14.py              # RQ full DNN hyperparameter scan
+│   ├── table18.py              # BJ full scan (DNN + CNN)
+│   └── tsne_viz.py             # t-SNE visualization
 │
 └── results/                    # Output CSVs and figures
 ```
 
-## Quick Start
+## Getting Started
 
-### 1. Install Dependencies
+**Install dependencies:**
 
 ```bash
 pip install tensorflow numpy pandas scikit-learn scipy matplotlib
 ```
 
-### 2. Prepare Data
-
-Option A -- link from the original `spatial-embedding` repo:
+**Prepare data** -- either link from an existing copy of the original repo, or download directly from Mendeley:
 
 ```bash
+# Option A: link from local spatial-embedding repo
 python run_all.py --download --spatial-emb-dir ../spatial-embedding
-```
 
-Option B -- download from Mendeley:
-
-```bash
+# Option B: download from Mendeley
 python run_all.py --download
 ```
 
-Then create standardized symlinks:
+Then set up the standardized file names:
 
 ```bash
 python -m data.prepare_data
 ```
 
-### 3. Run Experiments
+**Run experiments:**
 
 ```bash
-# Run all experiments
-python run_all.py --tables all
-
-# Run specific tables
-python run_all.py --tables 3 4 5
-
-# Run t-SNE visualization only
-python run_all.py --tables 99
+python run_all.py --tables all          # everything
+python run_all.py --tables 3 4 5        # specific tables
+python run_all.py --tables 99           # t-SNE visualization only
 ```
 
-Results are saved to `results/` as CSV files and PNG figures.
+Results go to `results/` as CSV files and PNG figures.
 
-## Experiments
+## Experiment Overview
 
-| Table | Task | Description |
-|-------|------|-------------|
-| 3     | M1   | CNN AE reconstruction quality (synthetic data) |
-| 4     | M1   | AE reconstruction quality (synthetic + real data) |
-| 14    | M2   | RQ selectivity -- full DNN hyperparameter scan |
-| 5     | M2   | RQ selectivity -- best configurations |
-| 51  | M2   | RQ selectivity -- 5-fold cross-validation |
-| 6     | M2   | Self-join selectivity -- best configurations |
-| 7     | M2   | Self-join MBR tests -- best configurations |
-| 18    | M2   | Binary join selectivity -- full scan |
-| 8     | M2   | Binary join selectivity -- best configurations |
-| 9     | M2   | Binary join MBR tests -- best configurations |
-| 99    | Viz  | t-SNE embedding quality analysis |
+| Table | Stage | What it does |
+|-------|-------|--------------|
+| 3     | M1    | CNN AE reconstruction (synthetic data) |
+| 4     | M1    | AE reconstruction (synthetic + real) |
+| 14    | M2    | RQ selectivity -- full DNN scan |
+| 5     | M2    | RQ selectivity -- best configs |
+| 5 (CV)| M2    | RQ selectivity -- 5-fold cross-validation |
+| 6     | M2    | Self-join selectivity |
+| 7     | M2    | Self-join MBR tests |
+| 18    | M2    | Binary join selectivity -- full scan |
+| 8     | M2    | Binary join selectivity -- best configs |
+| 9     | M2    | Binary join MBR tests |
+| 99    | Viz   | t-SNE embedding quality analysis |
 
 ## Autoencoder Configurations
 
@@ -125,6 +115,6 @@ Results are saved to `results/` as CSV files and PNG figures.
 | AE_C3 | CNN     | 1536      | Synthetic + Real |
 | AE_C4 | CNN     | 768       | Synthetic + Real |
 
-## Data Source
+## Data
 
-Dataset: [Mendeley Data DOI 10.17632/zp9fh6scw9.2](https://data.mendeley.com/datasets/zp9fh6scw9/2)
+The dataset is hosted on Mendeley Data: [DOI 10.17632/zp9fh6scw9.2](https://data.mendeley.com/datasets/zp9fh6scw9/2)

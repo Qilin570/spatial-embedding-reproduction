@@ -1,16 +1,8 @@
 #!/usr/bin/env python3
 """Prepare downloaded data: extract zips and create symlinks with standardized names.
 
-The Mendeley data uses original naming conventions (e.g., x_63410_rq_2_emb1.npy)
-but our experiment scripts expect standardized names (e.g., x_rq_AE_S1.npy).
-
-This script:
-1. Extracts all .zip archives
-2. Creates symlinks mapping original names -> expected names
-3. Maps pre-trained model directories to expected names
-
-Usage:
-    python3 -m data.prepare_data [--data-dir ./data/downloaded_data]
+Maps original Mendeley naming conventions to the standardized names
+expected by experiment scripts (e.g., x_63410_rq_2_emb1.npy -> x_rq_AE_S1.npy).
 """
 import os
 import sys

@@ -16,18 +16,7 @@ import configs as cfg
 
 # Extracted from the authors' code: generate_input_RQ.py - get_embedding
 def get_embedding_rq(local_enc, global_enc, rq_hist, dataset_file, mbr, norm_max):
-    """Generate local, global, and RQ embeddings for a range query.
-
-    Args:
-        local_enc: local autoencoder model
-        global_enc: global autoencoder model
-        rq_hist: range query histogram (128x128x1)
-        dataset_file: path to histogram CSV file
-        mbr: dict with minx, miny, maxx, maxy
-        norm_max: normalization max values
-    Returns:
-        emb_local, emb_global, emb_rq
-    """
+    """Generate local, global, and RQ embeddings for a range query."""
     hist_local = gen_hist_from_file(cfg.DIM_H_X, cfg.DIM_H_Y, cfg.DIM_H_Z, dataset_file)
     hist_local_norm, _, _ = nor_g_ab(
         hist_local.reshape((1, cfg.DIM_H_X, cfg.DIM_H_Y, cfg.DIM_H_Z)),
@@ -49,17 +38,7 @@ def get_embedding_rq(local_enc, global_enc, rq_hist, dataset_file, mbr, norm_max
 
 # Extracted from the authors' code: generate_input_JN.py - get_embedding
 def get_embedding_jn(local_enc, global_enc, dataset_file, mbr, norm_max):
-    """Generate local and global embeddings for a join dataset.
-
-    Args:
-        local_enc: local autoencoder model
-        global_enc: global autoencoder model
-        dataset_file: path to histogram CSV file
-        mbr: dict with minx, miny, maxx, maxy
-        norm_max: normalization max values
-    Returns:
-        emb_local, emb_global
-    """
+    """Generate local and global embeddings for a join dataset."""
     hist_local = gen_hist_from_file(cfg.DIM_H_X, cfg.DIM_H_Y, cfg.DIM_H_Z, dataset_file)
     hist_local_norm, _, _ = nor_g_ab(
         hist_local.reshape((1, cfg.DIM_H_X, cfg.DIM_H_Y, cfg.DIM_H_Z)),
@@ -81,12 +60,7 @@ def get_embedding_jn(local_enc, global_enc, dataset_file, mbr, norm_max):
 def gen_rq_layer(rq, dimx, dimy,
                  x_min_ref=None, x_max_ref=None,
                  y_min_ref=None, y_max_ref=None):
-    """Generate a 128x128x1 histogram representing a range query rectangle.
-
-    Args:
-        rq: dict with minx, miny, maxx, maxy
-        dimx, dimy: grid dimensions
-    """
+    """Generate a 128x128x1 histogram representing a range query rectangle."""
     if x_min_ref is None:
         x_min_ref = cfg.RQ_X_MIN_REF
     if x_max_ref is None:
@@ -136,20 +110,7 @@ def gen_rq_layer(rq, dimx, dimy,
 def generate_rq_inputs(ae_config, local_enc, global_enc,
                        result_file, hist_dir, delim=',',
                        flag_sel_card=0, from_x=0, to_x=None, perc=1.0):
-    """Generate M2 input data for Range Query experiments.
-
-    Reads a result CSV, computes embeddings, and returns arrays.
-
-    Args:
-        ae_config: AutoencoderConfig
-        local_enc: local encoder model
-        global_enc: global encoder model
-        result_file: CSV with RQ results
-        hist_dir: directory containing histogram CSV files
-        flag_sel_card: 0=selectivity, 1=cardinality, 2=mbrTests, 3=mbrTests_sel
-    Returns:
-        out_x, out_x1, out_y, out_ds
-    """
+    """Generate M2 input data for Range Query experiments."""
     norm_max = cfg.get_norm_max(ae_config.trained_on)
     emb_shape = ae_config.emb_shape
     dim_e_x, dim_e_y, dim_e_z = emb_shape
@@ -217,21 +178,7 @@ def generate_jn_inputs(ae_config, local_enc, global_enc,
                        result_file, summary_file, hist_dir,
                        delim=',', flag_sel_card=0, max_y=1.0,
                        from_x=0, to_x=None, data_type='synt'):
-    """Generate M2 input data for Self-Join or Binary-Join experiments.
-
-    Args:
-        ae_config: AutoencoderConfig
-        local_enc: local encoder model
-        global_enc: global encoder model
-        result_file: CSV with join results
-        summary_file: CSV with dataset summaries
-        hist_dir: directory containing histogram CSV files
-        flag_sel_card: 0=selectivity, 1=cardinality, 2=mbrTests, 3=mbrTests_sel
-        max_y: maximum acceptable y value
-        data_type: 'synt', 'real', or 'real_er'
-    Returns:
-        out_x, out_x1, out_y, out_ds
-    """
+    """Generate M2 input data for Self-Join or Binary-Join experiments."""
     norm_max = cfg.get_norm_max(ae_config.trained_on)
     emb_shape = ae_config.emb_shape
     dim_e_x, dim_e_y, dim_e_z = emb_shape

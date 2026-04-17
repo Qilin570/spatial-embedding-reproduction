@@ -27,11 +27,7 @@ MAX_RETRIES_STACKED = 10
 
 
 def run(data_dir, output_dir, **kwargs):
-    """Run Table 4 experiment.
-
-    Always trains from scratch (no pre-trained model loading).
-    Uses 80% combined data for training, 20% for evaluation.
-    """
+    """Run Table 4 experiment (trains from scratch, 80/20 split)."""
     print("\n" + "=" * 60)
     print("TABLE 4: AE on Synthetic + Real Data")
     print("=" * 60)

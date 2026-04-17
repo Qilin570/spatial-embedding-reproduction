@@ -1,28 +1,7 @@
 """t-SNE visualization: validate that M1 captures geographic semantics.
 
-Applies t-SNE dimensionality reduction to M1 latent representations to
-visually validate that the autoencoder successfully captures geographic
-semantics and produces distinct clustering patterns by data distribution.
-
-Analyzes both RQ (range query) and SJ (self-join) embeddings:
-  - RQ embeddings: AE_S1, AE_C2 (synthetic), AE_S3, AE_S4 (synth+real)
-  - SJ embeddings: AE_C2 (synthetic), AE_S4 (synth+real, mixed distributions)
-
-Generates:
-  1. tsne_distribution.png      — RQ: distribution clustering (Table 3 & 4)
-  2. tsne_selectivity.png       — RQ: distribution vs selectivity comparison
-  3. tsne_distribution_sj.png   — SJ: distribution clustering (Table 4 mixed data)
-  4. tsne_viz.csv               — quantitative clustering metrics
-
-Metrics (computed in original high-dimensional embedding space):
-  - silhouette_dist: silhouette score using distribution type as labels
-    (higher = distributions better separated, M1 captures geographic semantics)
-  - silhouette_dist_random: same on shuffled embeddings (baseline)
-  - silhouette_dist_tsne: silhouette on t-SNE 2D for visual reference
-
-Usage:
-    python run_all.py --tables 99
-    python -m experiments.tsne_viz --data-dir ./data/downloaded_data
+Applies t-SNE to M1 latent representations to check clustering by distribution type.
+Generates distribution/selectivity plots and silhouette-based clustering metrics.
 """
 import os
 import argparse
@@ -91,12 +70,7 @@ JN_DIST_CODE_MAP = {
 # ---------------------------------------------------------------------------
 
 def _find_ds_file(data_dir, n_samples, task="rq"):
-    """Find distribution metadata file matching sample count.
-
-    Searches subdirectories for ds_* files matching the expected sample count.
-    For RQ: looks for ds_*_rq*.npy or y_*_distr.npy
-    For SJ: looks for ds_*_jn*.npy
-    """
+    """Find distribution metadata file matching sample count."""
     keyword = "rq" if task == "rq" else "jn"
     for subdir in os.listdir(data_dir):
         subpath = os.path.join(data_dir, subdir)
@@ -140,15 +114,7 @@ def subsample(x, y, ds, n_samples, seed):
 
 
 def get_dist_labels(ds, task="rq"):
-    """Extract distribution type labels from metadata array.
-
-    For RQ synthetic data: uses column 1 (distribution name strings)
-    For RQ real data: derives lake/park from dataset filename
-    For JN data: decodes numeric distribution codes using JN_DIST_CODE_MAP
-
-    Returns labels array and sorted unique label names, or (None, None)
-    if distribution metadata is unavailable or has only one category.
-    """
+    """Extract distribution type labels from metadata array."""
     if ds is None:
         return None, None
 
@@ -300,13 +266,7 @@ def plot_selectivity(ax, tsne_2d, y, title, point_size=5):
 # ---------------------------------------------------------------------------
 
 def process_task(data_dir, ae_configs, task, task_label):
-    """Load, subsample, and run t-SNE for a set of AEs on a given task.
-
-    Returns:
-        tsne_results: dict ae_name -> tsne_2d
-        data_cache: dict ae_name -> (y_sub, ds_sub, x_flat)
-        available: list of (ae_name, desc) that were successfully loaded
-    """
+    """Load, subsample, and run t-SNE for a set of AEs on a given task."""
     tsne_results = {}
     data_cache = {}
     available = []

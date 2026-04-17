@@ -19,16 +19,7 @@ import configs as cfg
 
 
 def create_m2_model(task, m2_type, emb_shape, filters):
-    """Create an M2 model.
-
-    Args:
-        task: "rq", "sj", or "bj"
-        m2_type: "dnn" or "cnn"
-        emb_shape: tuple (dim_e_x, dim_e_y, dim_e_z)
-        filters: list of filter sizes
-    Returns:
-        model instance
-    """
+    """Create an M2 model for the given task and architecture type."""
     dim_e_x, dim_e_y, _ = emb_shape
 
     if task == "rq":
@@ -48,28 +39,8 @@ def create_m2_model(task, m2_type, emb_shape, filters):
 def train_m2(model, x, x1, y,
              epochs=None, batch_size=None, patience=None,
              c_norm=0, y_min=0.0, y_max=1.0):
-    """Train an M2 model.
-
-    Aligned with the original author's code (run_model_all.py):
-    - Two-step split: 80/20 test (rs=42), then 80/20 val from train (rs=43)
-    - MAE loss, adam optimizer (default lr=0.001)
-    - EarlyStopping on 'loss' with patience=6, no restore_best_weights
-    - Y normalization with nor_y_ab before training
-    - Evaluate on TEST set with denormalization
-
-    Args:
-        model: M2 model instance
-        x: input embeddings (local)
-        x1: input embeddings (global/query)
-        y: target values
-        epochs, batch_size, patience: training params
-        c_norm: normalization constant for y
-        y_min, y_max: min/max for y normalization
-    Returns:
-        model: trained model
-        history: training history
-        metrics: dict with evaluation metrics
-        train_time: time in seconds
+    """Train an M2 model and evaluate on held-out test set.
+    Returns (model, history, metrics, train_time).
     """
     if epochs is None:
         epochs = cfg.M2_EPOCHS
@@ -136,17 +107,7 @@ def train_m2(model, x, x1, y,
 
 def run_experiment(task, ae_configs, m2_configs, data_files,
                    c_norm=0, y_min=0.0, y_max=1.0):
-    """Run a full experiment with multiple AE and M2 configurations.
-
-    Args:
-        task: "rq", "sj", or "bj"
-        ae_configs: list of (ae_name, AutoencoderConfig) to use
-        m2_configs: list of M2HyperparamConfig to try
-        data_files: dict mapping ae_name -> (x_file, x1_file, y_file, ds_file)
-        c_norm: normalization constant
-    Returns:
-        DataFrame with all results
-    """
+    """Run a full experiment with multiple AE and M2 configurations."""
     results = []
 
     for ae_name, ae_cfg in ae_configs:

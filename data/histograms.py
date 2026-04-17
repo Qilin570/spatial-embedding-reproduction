@@ -63,12 +63,7 @@ def gen_hist_from_file(dimx, dimy, dimz, file):
 
 # Extracted from the authors' code: generate_histogram.py - area_intersection
 def area_intersection(l1, r1, l2, r2):
-    """Calculate the intersection area of two rectangles.
-
-    Args:
-        l1, r1: bottom-left and top-right of rectangle 1
-        l2, r2: bottom-left and top-right of rectangle 2
-    """
+    """Calculate the intersection area of two rectangles."""
     x, y = 0, 1
     x_dist = min(r1[x], r2[x]) - max(l1[x], l2[x])
     y_dist = min(r1[y], r2[y]) - max(l1[y], l2[y])
@@ -81,14 +76,7 @@ def area_intersection(l1, r1, l2, r2):
 def gen_global_hist(h0, dimx, dimy, mbr,
                     global_x_min=0, global_x_max=10,
                     global_y_min=0, global_y_max=10):
-    """Compute a global histogram from a local histogram using area intersection.
-
-    Args:
-        h0: local histogram (dimx, dimy, dimz)
-        dimx, dimy: grid dimensions
-        mbr: dict with keys minx, miny, maxx, maxy
-        global_x_min/max, global_y_min/max: reference space bounds
-    """
+    """Compute a global histogram from a local histogram using area intersection."""
     xsize = (mbr['maxx'] - mbr['minx']) / dimx
     ysize = (mbr['maxy'] - mbr['miny']) / dimy
     cellArea = xsize * ysize
@@ -162,18 +150,7 @@ def gen_global_hist(h0, dimx, dimy, mbr,
 
 # Adapted from the authors' code: generate_histogram.py - gen_input_from_file
 def gen_input_from_file(dimx, dimy, dimz, path, mbrFile, fieldName, suffix):
-    """Load local histograms from files and generate corresponding global histograms.
-
-    Args:
-        dimx, dimy, dimz: histogram dimensions
-        path: directory containing histogram CSV files
-        mbrFile: CSV file with dataset MBRs
-        fieldName: 0 for Alberto's format, 1 for Ahmed's format
-        suffix: suffix to append to derive dataset name
-    Returns:
-        hh: array of local histograms
-        hg: array of global histograms
-    """
+    """Load local histograms from files and generate corresponding global histograms."""
     mbr = {}
     with open(mbrFile, mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file, delimiter=',')

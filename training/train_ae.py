@@ -19,28 +19,7 @@ def train_autoencoder(ae_config, hist_local, hist_global=None,
                       batch_size=None, epochs=None, val_split=None,
                       norm_min=None, norm_max=None):
     """Train an autoencoder on histogram data.
-
-    Follows the original code's normalization approach: compute min/max from
-    the data itself using nor_g_ab(data, 1, -1, -1), or use pre-computed
-    norm_min/norm_max if provided.
-
-    Args:
-        ae_config: AutoencoderConfig
-        hist_local: local histograms array (N, 128, 128, 6)
-        hist_global: global histograms array (N, 128, 128) or None
-        batch_size: training batch size (default: AE_BATCH_SIZE)
-        epochs: number of epochs (default: AE_EPOCHS)
-        val_split: validation split ratio (default: AE_VALIDATION_SPLIT)
-        norm_min: pre-computed normalization min (original scale, per-feature).
-                  If None, computed from hist_local.
-        norm_max: pre-computed normalization max (original scale, per-feature).
-                  If None, computed from hist_local.
-    Returns:
-        model: trained autoencoder
-        history: training history
-        train_time: training time in seconds
-        norm_min: normalization min values used (original scale)
-        norm_max: normalization max values used (original scale)
+    Returns (model, history, train_time, norm_min, norm_max).
     """
     if batch_size is None:
         batch_size = cfg.AE_BATCH_SIZE
@@ -93,14 +72,7 @@ def train_autoencoder(ae_config, hist_local, hist_global=None,
 # Adapted from the authors' code: run_autoenc.py - nor_and_train (global AE variant)
 def train_global_autoencoder(hist_global, latent_dim=2048,
                              batch_size=None, epochs=None, val_split=None):
-    """Train a global histogram autoencoder.
-
-    Args:
-        hist_global: global histograms (N, 128, 128)
-        latent_dim: embedding dimension
-    Returns:
-        model, history, train_time
-    """
+    """Train a global histogram autoencoder."""
     if batch_size is None:
         batch_size = cfg.AE_BATCH_SIZE
     if epochs is None:
@@ -136,25 +108,8 @@ def train_global_autoencoder(hist_global, latent_dim=2048,
 # Adapted from the authors' code: run_autoenc.py - wmape + denormalization logic
 def evaluate_autoencoder(model, hist_data, norm_min, norm_max,
                          use_encoder_decoder=False):
-    """Evaluate autoencoder reconstruction quality.
-
-    Computes WMAPE on denormalized (original scale) data, using per-feature
-    equal-weight averaging as in the original paper.
-
-    Flow: original → normalize → encode → decode → denormalize → compare with original
-
-    Args:
-        model: trained autoencoder
-        hist_data: original histograms (unnormalized)
-        norm_min: normalization min values (original scale, per-feature)
-        norm_max: normalization max values (original scale, per-feature)
-        use_encoder_decoder: if True, call encoder/decoder separately instead of
-            model.predict(). Required for Dense (stacked) autoencoders loaded
-            from TF2 SavedModel, where model.predict() produces incorrect output
-            due to traced call() graph issues.
-    Returns:
-        wmape: arithmetic mean of per-feature WMAPEs
-        wmape_per_feature: per-feature WMAPE
+    """Evaluate autoencoder reconstruction quality (WMAPE on original scale).
+    Set use_encoder_decoder=True for Dense AEs loaded from SavedModel.
     """
     # Normalize
     hist_norm, _, _ = nor_g_ab(hist_data.copy(), 1, norm_min, norm_max)

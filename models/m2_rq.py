@@ -14,11 +14,7 @@ from tensorflow.keras import layers
 # Extracted from the authors' code: myModel_RQ.py - RQ_sel_2Input_DENSE2L_DENSE3L
 class M2_DNN_RQ(Model):
     """Dense M2 model for range query selectivity.
-
-    Architecture: 2 Dense layers on input B -> concatenate with flattened A -> 3 Dense layers -> output.
-    Args:
-        dimx, dimy: embedding spatial dimensions
-        f1-f5: hidden layer sizes (e.g., [64, 32, 32, 16, 16])
+    2 Dense on B -> concat with flat A -> 3 Dense -> output.
     """
 
     def __init__(self, dimx, dimy, f1, f2, f3, f4, f5):
@@ -50,11 +46,7 @@ class M2_DNN_RQ(Model):
 # (modified: uses Conv2D+MaxPool instead of two separate Conv2D with conditional pooling)
 class M2_CNN_RQ(Model):
     """CNN M2 model for range query selectivity.
-
-    Architecture: 2 CNN layers on input A -> concatenate with flattened B -> 2 Dense layers -> output.
-    Args:
-        dimx, dimy: embedding spatial dimensions
-        f1-f4: filter sizes (e.g., [64, 32, 32, 16])
+    2 Conv2D on A -> concat with flat B -> 2 Dense -> output.
     """
 
     def __init__(self, dimx, dimy, f1, f2, f3, f4):

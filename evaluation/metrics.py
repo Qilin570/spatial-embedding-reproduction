@@ -10,19 +10,7 @@ import numpy as np
 # Adapted from the authors' code: run_autoenc.py - wmape
 # (modified: vectorized with numpy instead of nested loops)
 def wmape_autoencoder(orig, decoded):
-    """Compute WMAPE for autoencoder reconstruction.
-
-    Uses per-feature equal-weight averaging as in the original paper:
-    wmape_f[i] = sum|orig_f - dec_f| / sum(orig_f) for each feature
-    wmape = mean(wmape_f) across all features
-
-    Args:
-        orig: original data (N, dimx, dimy, dimz)
-        decoded: reconstructed data
-    Returns:
-        overall_wmape: arithmetic mean of per-feature WMAPEs
-        per_feature_wmape: list of per-feature WMAPE
-    """
+    """Compute WMAPE for autoencoder reconstruction (per-feature equal-weight average)."""
     n_features = orig.shape[-1] if orig.ndim > 3 else 1
     per_feature = []
 
@@ -44,17 +32,7 @@ def wmape_autoencoder(orig, decoded):
 
 # Extracted from the authors' code: run_model_all.py - mape_error_zero
 def mape_error_zero(y, predict):
-    """Compute comprehensive error metrics including handling of zero values.
-
-    This is a direct port of the original mape_error_zero function.
-
-    Args:
-        y: actual values (1D array or column vector)
-        predict: predicted values (1D array or column vector)
-    Returns:
-        dict with keys: rma, mape, wmape, freq, non_zero, mae_zero,
-                        freq_zero, zero, wmape_tot, outliers, outliers_zero
-    """
+    """Compute error metrics (WMAPE, MAPE, RMA, MAE) with zero-value handling."""
     y = np.asarray(y).flatten()
     predict = np.asarray(predict).flatten()
 
@@ -150,13 +128,7 @@ def mape_error_zero(y, predict):
 
 
 def compute_baseline_rq(y):
-    """Compute baseline WMAPE using mean prediction for RQ.
-
-    Args:
-        y: actual selectivity values
-    Returns:
-        baseline WMAPE
-    """
+    """Compute baseline WMAPE using mean prediction."""
     y = np.asarray(y).flatten()
     mean_pred = np.mean(y)
     abs_error = np.sum(np.abs(y - mean_pred))
@@ -165,11 +137,5 @@ def compute_baseline_rq(y):
 
 
 def compute_baseline_jn(y):
-    """Compute baseline WMAPE using mean prediction for JN.
-
-    Args:
-        y: actual selectivity values
-    Returns:
-        baseline WMAPE
-    """
+    """Compute baseline WMAPE using mean prediction."""
     return compute_baseline_rq(y)

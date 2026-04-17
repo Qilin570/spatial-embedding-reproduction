@@ -21,7 +21,7 @@ from tensorflow.keras import layers
 
 # Extracted from the authors' code: myAutoencoder.py - AutoencoderCNN_local
 class AutoencoderCNN_local(Model):
-    """CNN autoencoder for local histograms (128x128x6 -> latent_dim)."""
+    """CNN autoencoder for local histograms."""
 
     def __init__(self, latent_dim, dimx, dimy, dimz, f1, f2):
         super(AutoencoderCNN_local, self).__init__()
@@ -177,14 +177,7 @@ class AutoencoderCNN_global(Model):
 
 
 def create_autoencoder(config, dimx=128, dimy=128, dimz=6):
-    """Factory function to create an autoencoder from config.
-
-    Args:
-        config: AutoencoderConfig instance
-        dimx, dimy, dimz: histogram dimensions
-    Returns:
-        autoencoder model
-    """
+    """Create an autoencoder from config."""
     if config.ae_type == "cnn":
         return AutoencoderCNN_local(config.latent_dim, dimx, dimy, dimz,
                                     config.f1, config.f2)
@@ -196,15 +189,7 @@ def create_autoencoder(config, dimx=128, dimy=128, dimz=6):
 
 
 def create_global_autoencoder(latent_dim=2048, dimx=128, dimy=128, use_cnn=True):
-    """Create a global histogram autoencoder.
-
-    Args:
-        latent_dim: embedding dimension
-        dimx, dimy: histogram dimensions
-        use_cnn: if True use CNN, else Dense
-    Returns:
-        autoencoder model
-    """
+    """Create a global histogram autoencoder."""
     if use_cnn:
         return AutoencoderCNN_global(latent_dim, dimx, dimy)
     else:

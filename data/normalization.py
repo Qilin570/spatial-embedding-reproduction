@@ -9,15 +9,8 @@ import numpy as np
 
 # Extracted from the authors' code: generate_histogram.py - nor_g_ab
 def nor_g_ab(hist, c, min_val, max_val):
-    """Normalize histogram with min-max and optional log(1+cx) transform.
-
-    Args:
-        hist: input histogram array (3D or 4D)
-        c: if > 0, apply log(1+c*x) transform before min-max
-        min_val: minimum value(s) for normalization (scalar or array)
-        max_val: maximum value(s) for normalization (scalar or array)
-    Returns:
-        normalized histogram, original min, original max
+    """Normalize histogram: optional log(1+cx) then min-max scaling.
+    Returns (normalized, original_min, original_max).
     """
     minimum_nolog = np.amin(hist, axis=tuple(range(len(hist.shape) - 1))) if hist.ndim > 1 else np.amin(hist)
     maximum_nolog = np.amax(hist, axis=tuple(range(len(hist.shape) - 1))) if hist.ndim > 1 else np.amax(hist)
@@ -64,16 +57,7 @@ def nor_g_ab(hist, c, min_val, max_val):
 
 # Extracted from the authors' code: generate_histogram.py - denorm_g_ab
 def denorm_g_ab(hist, c, min_val, max_val):
-    """Denormalize histogram (inverse of nor_g_ab).
-
-    Args:
-        hist: normalized histogram
-        c: log transform constant (same as used in normalization)
-        min_val: original min value(s)
-        max_val: original max value(s)
-    Returns:
-        denormalized histogram
-    """
+    """Inverse of nor_g_ab."""
     hist = hist.copy().astype(np.float64)
 
     if c:
@@ -109,16 +93,7 @@ def denorm_g_ab(hist, c, min_val, max_val):
 
 # Extracted from the authors' code: generate_histogram.py - nor_y_ab
 def nor_y_ab(y, c, min_val, max_val):
-    """Normalize target variable with optional log transform and min-max scaling.
-
-    Args:
-        y: target values
-        c: if > 0, apply log(1+c*y) transform
-        min_val: minimum (-1 to compute from data)
-        max_val: maximum (-1 to compute from data)
-    Returns:
-        normalized y
-    """
+    """Normalize target: optional log transform + min-max. Pass -1 to auto-compute bounds."""
     y = np.double(y)
     if c > 0:
         y_norm = np.log(1 + c * y)
@@ -150,16 +125,7 @@ def nor_y_ab(y, c, min_val, max_val):
 
 # Extracted from the authors' code: generate_histogram.py - denorm_y_ab
 def denorm_y_ab(y_nor, c, min_val, max_val):
-    """Denormalize target variable (inverse of nor_y_ab).
-
-    Args:
-        y_nor: normalized values
-        c: log transform constant
-        min_val: original minimum
-        max_val: original maximum
-    Returns:
-        denormalized y
-    """
+    """Inverse of nor_y_ab."""
     y_nor = np.double(y_nor)
     min_val = np.double(min_val)
     max_val = np.double(max_val)
@@ -177,16 +143,7 @@ def denorm_y_ab(y_nor, c, min_val, max_val):
 
 # Extracted from the authors' code: generate_histogram.py - nor_a_ab
 def nor_a_ab(a, c, min_val, max_val):
-    """Normalize local histogram array with optional log transform.
-
-    Args:
-        a: histogram array (N, dimx, dimy, dimz)
-        c: log constant
-        min_val: per-feature min values
-        max_val: per-feature max values
-    Returns:
-        normalized array
-    """
+    """Normalize local histogram array with optional log transform + min-max scaling."""
     min_arr = np.array(min_val)
     max_arr = np.array(max_val)
     if c > 0:

@@ -22,12 +22,10 @@ class AutoencoderConfig:
 
     @property
     def emb_shape(self) -> Tuple[int, int, int]:
-        """Return (x, y, z) reshape dimensions for the embedding."""
         return LATENT_DIM_TO_SHAPE[self.latent_dim]
 
     @property
     def model_filename(self) -> str:
-        """Return the expected model filename for this AE."""
         return AE_MODEL_FILES[self.name]
 
 

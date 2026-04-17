@@ -14,11 +14,7 @@ from tensorflow.keras import layers
 # Extracted from the authors' code: myModel_JN.py - JN_2Input_DENSE2L_DENSE2L_DENSE2L
 class M2_DNN_JN(Model):
     """Dense M2 model for join selectivity.
-
-    Architecture: 2 Dense layers on each input -> concatenate -> 3 Dense layers -> output.
-    Args:
-        dimx, dimy: embedding spatial dimensions
-        f1-f5: hidden layer sizes
+    2 Dense on each input -> concat -> 3 Dense -> output.
     """
 
     def __init__(self, dimx, dimy, f1, f2, f3, f4, f5):
@@ -52,12 +48,7 @@ class M2_DNN_JN(Model):
 # (modified: Dropout changed from 0.2 to 0.3; uses conditional MaxPool)
 class M2_CNN_JN(Model):
     """CNN M2 model for join selectivity.
-
-    Architecture: 2 CNN layers on input A -> concatenate with flattened B -> 2 Dense layers -> output.
-    Uses Dropout=0.3 (different from RQ's 0.2).
-    Args:
-        dimx, dimy: embedding spatial dimensions
-        f1-f4: filter sizes
+    2 Conv2D on A -> concat with flat B -> 2 Dense -> output. Dropout=0.3.
     """
 
     def __init__(self, dimx, dimy, f1, f2, f3, f4):
