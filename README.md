@@ -94,7 +94,7 @@ Results go to `results/` as CSV files and PNG figures.
 | 4     | M1    | AE reconstruction (synthetic + real) |
 | 14    | M2    | RQ selectivity -- full DNN scan |
 | 5     | M2    | RQ selectivity -- best configs |
-| 5 (CV)| M2    | RQ selectivity -- 5-fold cross-validation |
+| 51    | M2    | RQ selectivity -- 5-fold cross-validation |
 | 6     | M2    | Self-join selectivity |
 | 7     | M2    | Self-join MBR tests |
 | 18    | M2    | Binary join selectivity -- full scan |
