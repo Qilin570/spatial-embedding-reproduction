@@ -13,7 +13,7 @@ The pipeline has two stages:
 ## Project Layout
 
 ```
-my-spatial-embedding/
+spatial-embedding-reproduction/
 ├── configs.py                  # All AE/M2 configs, normalization constants
 ├── run_all.py                  # Main entry point
 │
